@@ -1,0 +1,10 @@
+{
+  "attachmentFolderPath": "Вложения",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "Заметки",
+  "alwaysUpdateLinks": true,
+  "useMarkdownLinks": false,
+  "newLinkFormat": "shortest",
+  "showLineNumber": true,
+  "strictLineBreaks": false
+}

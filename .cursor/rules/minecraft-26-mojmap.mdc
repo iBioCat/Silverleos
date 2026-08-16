@@ -1,0 +1,55 @@
+---
+description: Minecraft 26.x Mojang-mapping (mojmap) API conventions for Fabric code
+globs: **/*.java
+alwaysApply: false
+---
+
+# Minecraft 26.x uses Mojang mappings, not Yarn
+
+Yarn is no longer published past 1.21.11. This project compiles against **official Mojang
+mappings**, so always use mojmap names: `PathfinderMob` (not `MobEntity`), `Level` (not `World`),
+`Mob.createMobAttributes()`, `BuiltInRegistries`.
+
+## `ResourceLocation` was renamed to `Identifier`
+
+```java
+// ❌ BAD
+import net.minecraft.resources.ResourceLocation;
+ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MOD_ID, "silverleos");
+
+// ✅ GOOD
+import net.minecraft.resources.Identifier;
+Identifier id = Identifier.fromNamespaceAndPath(MOD_ID, "silverleos");
+```
+
+## Entity types are built from a `ResourceKey`
+
+`EntityType.Builder#build` takes the `ResourceKey`, so declare the key first and reuse it.
+
+```java
+public static final ResourceKey<EntityType<?>> SILVERLEOS_KEY =
+        ResourceKey.create(Registries.ENTITY_TYPE, Silverleos.id("silverleos"));
+
+public static final EntityType<SilverleosEntity> SILVERLEOS = Registry.register(
+        BuiltInRegistries.ENTITY_TYPE, SILVERLEOS_KEY,
+        EntityType.Builder.of(SilverleosEntity::new, MobCategory.CREATURE)
+                .sized(0.9f, 0.7f)
+                .build(SILVERLEOS_KEY));
+```
+
+Register attributes separately via `FabricDefaultAttributeRegistry.register(TYPE, Entity.createAttributes())`.
+
+## Register renderers with vanilla `EntityRenderers`
+
+Fabric's `EntityRendererRegistry` is deprecated in full; the transitive access widener exposes the
+vanilla method instead.
+
+```java
+// ❌ BAD — deprecated
+EntityRendererRegistry.register(ModEntities.SILVERLEOS, SilverleosRenderer::new);
+
+// ✅ GOOD
+EntityRenderers.register(ModEntities.SILVERLEOS, SilverleosRenderer::new);
+```
+
+Client-only code belongs in `src/client/java` (the build uses `splitEnvironmentSourceSets()`).

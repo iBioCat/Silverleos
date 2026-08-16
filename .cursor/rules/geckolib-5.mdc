@@ -1,0 +1,52 @@
+---
+description: GeckoLib 5.5+ package, asset paths, and animation API for Minecraft 26.x
+globs: **/*.java,**/*.geo.json,**/*.animation.json
+alwaysApply: false
+---
+
+# GeckoLib 5.5+ moved to the `com.geckolib` package
+
+Older guides use `software.bernie.geckolib`. That is wrong for 5.5+ — both the Maven group and the
+Java package are now `com.geckolib`.
+
+```java
+// ❌ BAD
+import software.bernie.geckolib.animatable.GeoEntity;
+
+// ✅ GOOD
+import com.geckolib.animatable.GeoEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.util.GeckoLibUtil;
+```
+
+## Assets live under `geckolib/`, not `geo/`
+
+GeckoLib scans `assets/<ns>/geckolib/models/` and `assets/<ns>/geckolib/animations/`. Using the old
+root `geo/` and `animations/` folders fails **silently at runtime** — the model is simply never found.
+
+```
+assets/silverleos/geckolib/models/entity/silverleos.geo.json
+assets/silverleos/geckolib/animations/entity/silverleos.animation.json
+assets/silverleos/textures/entity/silverleos.png          # textures stay put
+```
+
+`DefaultedEntityGeoModel` resolves these from a single base id, so `Silverleos.id("silverleos")`
+maps to the three paths above.
+
+To confirm assets load, look for this line in the client log:
+`[GeckoLib] Loaded N models and N animations from resources`.
+
+## Controllers receive an `AnimationTest`
+
+```java
+@Override
+public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+    controllers.add(new AnimationController<>("movement", 5, state ->
+            state.isMoving() ? state.setAndContinue(WALK_ANIM) : state.setAndContinue(IDLE_ANIM)));
+}
+```
+
+`GeoEntityRenderer` takes two type parameters — the entity and its render state. For anything
+extending `LivingEntity`, use `LivingEntityRenderState`.

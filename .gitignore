@@ -1,24 +1,46 @@
-# Compiled class file
-*.class
+# Gradle
+.gradle/
+build/
+out/
+classes/
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# Gradle wrapper jar must stay tracked; ignore other jars
 *.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+!gradle/wrapper/gradle-wrapper.jar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Loom / Minecraft dev runtime
+run/
+remappedSrc/
+.loom-cache/
+
+# IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs and crash reports
+*.log
 hs_err_pid*
 replay_pid*
+
+# Obsidian: заметки коммитим, локальное состояние UI — нет
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json
+vault/.obsidian/cache/
+
+# Хранилище — это vault/. Конфиг в корне появляется, только если корень открыли
+# как vault по ошибке, и коммитить его не нужно.
+/.obsidian/

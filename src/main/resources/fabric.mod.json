@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "silverleos",
+	"version": "${version}",
+	"name": "Silverleos",
+	"description": "Ancient cave chameleon-like creature (Чешуйник) for ModJam 2026 - Echoes of the Past",
+	"authors": [
+		"iBioCat"
+	],
+	"contact": {},
+	"license": "MIT",
+	"icon": "assets/silverleos/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.ibiocat.silverleos.Silverleos"
+		],
+		"client": [
+			"com.ibiocat.silverleos.client.SilverleosClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*",
+		"geckolib": "*"
+	}
+}

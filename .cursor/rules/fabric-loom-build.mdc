@@ -1,0 +1,47 @@
+---
+description: Fabric Loom 1.17 build conventions for Minecraft 26.x
+globs: build.gradle,settings.gradle,gradle.properties
+alwaysApply: false
+---
+
+# Loom 1.17 removed `modImplementation`
+
+Mod dependencies are declared with plain `implementation`; Loom detects and remaps mods itself.
+Using `modImplementation` fails configuration with "Could not find method modImplementation()".
+
+```groovy
+// ❌ BAD
+modImplementation "com.geckolib:geckolib-fabric-${minecraft_version}:${geckolib_version}"
+
+// ✅ GOOD
+implementation "com.geckolib:geckolib-fabric-${minecraft_version}:${geckolib_version}"
+```
+
+## Do not add a `mappings` dependency
+
+Minecraft 26.x has no Yarn build. Loom applies official Mojang mappings by default, so the
+`dependencies` block must contain no `mappings` line at all.
+
+## Java 25 comes from a toolchain, not a local install
+
+Do not assume a JDK 25 is on the machine. `settings.gradle` applies
+`org.gradle.toolchains.foojay-resolver-convention` so Gradle downloads it; `build.gradle` pins
+`java.toolchain.languageVersion = JavaLanguageVersion.of(25)` and `options.release = 25`.
+
+## Keep versions in `gradle.properties`
+
+All coordinates (`minecraft_version`, `loader_version`, `loom_version`, `fabric_api_version`,
+`geckolib_version`) are declared there and referenced as `${project.x}` in `build.gradle`.
+
+## Verify versions instead of recalling them
+
+This ecosystem moves fast and group IDs change between releases. Before adding or bumping a
+dependency, check the real source rather than relying on memory or blog posts:
+
+- Fabric loader/game versions: `https://meta.fabricmc.net/v2/versions/game`
+- Fabric API and Loom: `https://maven.fabricmc.net/`
+- Canonical build config: the matching branch of `FabricMC/fabric-example-mod`
+- GeckoLib: its Cloudsmith maven, and the published `-sources.jar` to confirm real API signatures
+
+Validate changes with `./gradlew build`, and confirm runtime with `./gradlew runClient` — a build
+that compiles can still fail to find assets at runtime.
