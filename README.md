@@ -24,7 +24,7 @@ code refers to Mojang names such as `PathfinderMob`, `Level`, and `Identifier`.
 Java 25 does not need to be installed: the Gradle toolchain resolver downloads it automatically.
 
 ```bash
-./gradlew build      # produces build/libs/silverleos-1.0.0.jar
+./gradlew build      # produces build/libs/silverleos-1.1.0.jar
 ./gradlew runClient  # launches a dev client with the mod loaded
 ./gradlew runServer  # launches a dev server
 ```

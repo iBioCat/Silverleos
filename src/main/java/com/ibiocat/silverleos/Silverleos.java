@@ -1,6 +1,7 @@
 package com.ibiocat.silverleos;
 
 import com.ibiocat.silverleos.registry.ModEntities;
+import com.ibiocat.silverleos.registry.ModItems;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ public class Silverleos implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModEntities.initialize();
+		ModItems.initialize();
 
 		LOGGER.info("Silverleos stirs in the deep dark...");
 	}
