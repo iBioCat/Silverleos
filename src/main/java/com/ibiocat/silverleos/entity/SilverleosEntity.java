@@ -6,6 +6,12 @@ import com.geckolib.animatable.manager.AnimatableManager;
 import com.geckolib.animation.AnimationController;
 import com.geckolib.animation.RawAnimation;
 import com.geckolib.util.GeckoLibUtil;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
@@ -17,16 +23,33 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 /// The Silverleos (Чешуйник): a slow, ancient cave dweller that wanders the dark.
 ///
-/// Animation is driven by GeckoLib; see the client-side renderer and model for the
-/// asset bindings.
+/// Camouflage is computed on the server and synced as a 0..1 visibility value so
+/// every client sees the same fade, and gameplay triggers stay authoritative.
 public class SilverleosEntity extends PathfinderMob implements GeoEntity {
 	private static final RawAnimation IDLE_ANIM = RawAnimation.begin().thenLoop("idle");
 	private static final RawAnimation WALK_ANIM = RawAnimation.begin().thenLoop("walk");
 
+	private static final EntityDataAccessor<Float> DATA_VISIBILITY =
+			SynchedEntityData.defineId(SilverleosEntity.class, EntityDataSerializers.FLOAT);
+
+	/// Fully hidden still shows a faint silhouette so the mob is readable, not gone.
+	private static final float HIDDEN_VISIBILITY = 0.14F;
+	private static final float VISIBILITY_STEP = 1.0F / 30.0F;
+	private static final float PLAYER_REVEAL_RANGE = 5.0F;
+	private static final int BLOCK_LIGHT_REVEAL = 8;
+	private static final int REVEAL_AFTER_HIT_TICKS = 40;
+
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+
+	/// Previous tick's visibility, used only on the client to lerp with partial ticks.
+	private float visibilityO = 1.0F;
+	private int forceRevealTicks;
 
 	public SilverleosEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
 		super(entityType, level);
@@ -41,11 +64,91 @@ public class SilverleosEntity extends PathfinderMob implements GeoEntity {
 	}
 
 	@Override
+	protected void defineSynchedData(SynchedEntityData.Builder builder) {
+		super.defineSynchedData(builder);
+		builder.define(DATA_VISIBILITY, 1.0F);
+	}
+
+	@Override
 	protected void registerGoals() {
 		this.goalSelector.addGoal(0, new FloatGoal(this));
 		this.goalSelector.addGoal(1, new WaterAvoidingRandomStrollGoal(this, 0.8D));
 		this.goalSelector.addGoal(2, new LookAtPlayerGoal(this, Player.class, 8.0F));
 		this.goalSelector.addGoal(3, new RandomLookAroundGoal(this));
+	}
+
+	@Override
+	public void tick() {
+		this.visibilityO = getVisibility();
+		super.tick();
+
+		if (!this.level().isClientSide()) {
+			tickCamouflage();
+		}
+	}
+
+	@Override
+	protected void actuallyHurt(ServerLevel level, DamageSource damageSource, float damageAmount) {
+		super.actuallyHurt(level, damageSource, damageAmount);
+		this.forceRevealTicks = REVEAL_AFTER_HIT_TICKS;
+	}
+
+	private void tickCamouflage() {
+		if (this.forceRevealTicks > 0) {
+			this.forceRevealTicks--;
+		}
+
+		float target = shouldReveal() ? 1.0F : HIDDEN_VISIBILITY;
+		float current = getVisibility();
+		if (current < target) {
+			current = Math.min(target, current + VISIBILITY_STEP);
+		} else if (current > target) {
+			current = Math.max(target, current - VISIBILITY_STEP);
+		}
+
+		setVisibility(current);
+	}
+
+	private boolean shouldReveal() {
+		if (this.forceRevealTicks > 0 || this.hurtTime > 0) {
+			return true;
+		}
+		if (this.walkAnimation.speed() > 0.02F) {
+			return true;
+		}
+		if (this.level().getBrightness(LightLayer.BLOCK, this.blockPosition()) >= BLOCK_LIGHT_REVEAL) {
+			return true;
+		}
+		Player nearest = this.level().getNearestPlayer(this, PLAYER_REVEAL_RANGE);
+		return nearest != null && !nearest.isSpectator();
+	}
+
+	public float getVisibility() {
+		return this.entityData.get(DATA_VISIBILITY);
+	}
+
+	private void setVisibility(float visibility) {
+		this.entityData.set(DATA_VISIBILITY, Mth.clamp(visibility, HIDDEN_VISIBILITY, 1.0F));
+	}
+
+	/// Visibility to use while drawing this frame. Interpolates the synced value.
+	public float getRenderVisibility(float partialTick) {
+		return Mth.lerp(partialTick, this.visibilityO, getVisibility());
+	}
+
+	@Override
+	protected void addAdditionalSaveData(ValueOutput output) {
+		super.addAdditionalSaveData(output);
+		output.putFloat("CamouflageVisibility", getVisibility());
+		output.putInt("ForceRevealTicks", this.forceRevealTicks);
+	}
+
+	@Override
+	protected void readAdditionalSaveData(ValueInput input) {
+		super.readAdditionalSaveData(input);
+		setVisibility(input.getFloatOr("CamouflageVisibility", 1.0F));
+		this.forceRevealTicks = input.getIntOr("ForceRevealTicks", 0);
+		this.visibilityO = getVisibility();
 	}
 
 	@Override

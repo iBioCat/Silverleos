@@ -63,7 +63,7 @@ https://github.com/iBioCat/Silverleos/releases/latest/download/silverleos.mrpack
 
 ### Посмотреть существо в игре
 
-Создай любой мир, включи читы и введи в чат:
+Создай любой мир, включи читы. Яйцо призыва лежит во вкладке Spawn Eggs, либо в чат:
 
 ```
 /summon silverleos:silverleos
