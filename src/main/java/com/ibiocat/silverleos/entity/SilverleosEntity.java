@@ -30,7 +30,8 @@ import net.minecraft.world.level.storage.ValueOutput;
 /// The Silverleos (Чешуйник): a slow, ancient cave dweller that wanders the dark.
 ///
 /// Camouflage is computed on the server and synced as a 0..1 visibility value so
-/// every client sees the same fade, and gameplay triggers stay authoritative.
+/// every client sees the same blend. The client maps that to an opaque skin made
+/// of nearby block textures — not translucency.
 public class SilverleosEntity extends PathfinderMob implements GeoEntity {
 	private static final RawAnimation IDLE_ANIM = RawAnimation.begin().thenLoop("idle");
 	private static final RawAnimation WALK_ANIM = RawAnimation.begin().thenLoop("walk");
@@ -38,8 +39,8 @@ public class SilverleosEntity extends PathfinderMob implements GeoEntity {
 	private static final EntityDataAccessor<Float> DATA_VISIBILITY =
 			SynchedEntityData.defineId(SilverleosEntity.class, EntityDataSerializers.FLOAT);
 
-	/// Fully hidden still shows a faint silhouette so the mob is readable, not gone.
-	private static final float HIDDEN_VISIBILITY = 0.14F;
+	/// Floor of the synced visibility range. 0 means fully camouflaged.
+	private static final float HIDDEN_VISIBILITY = 0.0F;
 	private static final float VISIBILITY_STEP = 1.0F / 30.0F;
 	private static final float PLAYER_REVEAL_RANGE = 5.0F;
 	private static final int BLOCK_LIGHT_REVEAL = 8;
@@ -131,9 +132,9 @@ public class SilverleosEntity extends PathfinderMob implements GeoEntity {
 		this.entityData.set(DATA_VISIBILITY, Mth.clamp(visibility, HIDDEN_VISIBILITY, 1.0F));
 	}
 
-	/// Visibility to use while drawing this frame. Interpolates the synced value.
-	public float getRenderVisibility(float partialTick) {
-		return Mth.lerp(partialTick, this.visibilityO, getVisibility());
+	/// 0 = original skin, 1 = fully replaced by nearby block textures.
+	public float getCamouflageAmount() {
+		return 1.0F - Mth.clamp(getVisibility(), 0.0F, 1.0F);
 	}
 
 	@Override
